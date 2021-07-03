@@ -1,0 +1,77 @@
+module led (
+    input              sys_clk   ,       //系统时钟
+    input              sys_rst_n ,       //系统复位
+    input       [3:0]  state     ,       //交通灯的状态
+    input       [3:0]  key       ,
+    output reg  [11:0]  led               //红黄绿LED灯发光使能 
+);
+
+//parameter define
+parameter  TWINKLE_CNT = 20000;     //让黄灯闪烁的计数次数
+
+//reg define
+reg    [24:0]     cnt;                   //让黄灯产生闪烁效果的计数器
+
+//计数时间为0.4ms的计数器，用于让黄灯闪烁(非固定依据TWINKLE_CNT参数调整)                                                              
+always @(posedge sys_clk or negedge sys_rst_n)begin                                  
+    if(!sys_rst_n)                                                                   
+        cnt <= 25'b0;                                                                
+    else if (cnt < TWINKLE_CNT - 1'b1)                                                                                                        
+        cnt <= cnt + 1'b1;                                                                                                                                                                                                                                                             
+    else                                                                             
+        cnt <= 25'b0;                                                                
+end                                                                                  
+                                                                                     
+//在交通灯的四个状态里，使相应的led灯发光                                                              
+always @(posedge sys_clk or negedge sys_rst_n)begin                                  
+    if(!sys_rst_n)                                                                   
+        led <= 12'b100100;
+    else if(key[0] == 1'b0)
+        led <= 12'b010010010010;
+    else begin                                                                       
+        case(state)                                                                   
+            4'b0000:led <= 12'b010100100100;  //led寄存器从高到低分别驱动：北东南西向红绿黄灯                       
+                                                                                  
+            4'b0001: begin
+                   led[8:0]<=9'b100100100; 
+                   led[11:10]<=2'b00;					 
+                   if(cnt == TWINKLE_CNT - 1'b1)  //计数满0.4ms让黄灯的亮灭状况切换一次
+                                               //产生闪烁的效果                                 
+                    led[9] <= ~led[9];                                               
+                   else                                                                 
+                    led[9] <= led[9];
+                   end                                                                      
+            4'b0010:	led <= 12'b100010100100;                                                    
+            4'b0011: begin
+                   led[5:0]<=6'b100100;                                                     
+                   led[11:7]<=5'b10000;                                                    
+                   if(cnt == TWINKLE_CNT - 1'b1)                                            
+                    led[6] <= ~led[6];                                               
+                   else                                                                 
+                    led[6] <= led[6];
+                  end
+				4'b0100:	led<=12'b100100010100;
+				4'b0101: begin
+                   led[2:0]<=3'b100;  
+                   led[11:4]<=8'b10010000;						 
+                   if(cnt == TWINKLE_CNT - 1'b1)  //计数满0.4ms让黄灯的亮灭状况切换一次
+                                               //产生闪烁的效果                                 
+                    led[3] <= ~led[3];                                               
+                   else                                                                 
+                    led[3] <= led[3];
+                   end                                                                      
+            4'b0110:	led<=12'b100100100010;                                                    
+            4'b0111: begin                                                    
+                   led[11:1]<=11'b10010010000;                                                    
+                   if(cnt == TWINKLE_CNT - 1'b1)                                            
+                    led[0] <= ~led[0];                                               
+                   else                                                                 
+                    led[0] <= led[0];
+                  end
+	
+            default:led<=12'b100100100100;                                                  
+        endcase                                                                      
+    end                                                                              
+end  
+
+endmodule             
